@@ -1,0 +1,524 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>DDO Stat Stacking Calculator v1.5.1b</title><style>
+:root{--bg:#0b0f15;--panel:#121826;--muted:#a3b3c3;--text:#e6edf3;--accent:#4f96ff;--good:#2ecc71;--warn:#ffb020;--bad:#ff4d4d}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b0f15,#0b121b);color:var(--text)}
+.container{max-width:1400px;margin:22px auto;padding:0 16px;overflow-x:auto}h1{margin:0 0 6px;font-size:28px}.subtitle{color:var(--muted);margin-bottom:16px}
+.grid{display:grid;gap:16px;grid-template-columns:1fr;align-items:start}@media(min-width:1024px){.grid{grid-template-columns:minmax(0,1fr) 380px}}.grid.collapsed{grid-template-columns:minmax(0,1fr) 56px}
+.card{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3)}.card .body{padding:14px}.card h2{font-size:18px;margin:0 0 10px}
+.sidebar{position:sticky;top:14px}label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0f1522;color:var(--text);outline:none}
+button{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0f1522;color:var(--text);outline:none;width:auto}input:focus,select:focus,button:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,150,255,.15)}
+.row{display:grid;gap:10px}.row.cols-10{grid-template-columns:1.2fr 1fr 1fr 1fr .8fr .8fr .8fr .7fr .7fr .9fr}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar .btn,.toolbar a.btn{width:auto;white-space:nowrap}.btn{background:var(--accent);border:none;font-weight:600;cursor:pointer}.btn.secondary{background:#1b2335;border:1px solid rgba(255,255,255,.08)}.btn.danger{background:var(--bad)}.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,.2)}.btn.small{padding:6px 8px;font-size:12px}.btn:active{transform:translateY(1px)}
+table{width:100%;border-collapse:collapse;table-layout:auto}th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;text-align:left}th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);z-index:1}
+th:nth-child(9),td:nth-child(9){width:70px}th:nth-child(10),td:nth-child(10){width:260px}.pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;background:#0b1220;border:1px solid rgba(255,255,255,.08);color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,.1);background:#0e1522}.badge.good{border-color:rgba(46,204,113,.6)}.badge.warn{border-color:rgba(255,176,32,.6)}.badge.bad{border-color:rgba(255,77,77,.8);color:#ff9999;background:rgba(255,77,77,.08)}
+.totals{display:flex;flex-direction:column;gap:10px}.total-card{background:#0e1522;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px}.total-card h3{margin:0 0 6px;font-size:16px}.small{font-size:12px;color:var(--muted)}
+details{background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 12px}summary{cursor:pointer;color:var(--muted)}.right{text-align:right}.dim{opacity:.8}.section-title{display:flex;align-items:center;justify-content:space-between}
+.sockets{display:flex;flex-wrap:wrap;gap:6px}.muted{color:var(--muted);font-size:12px}.editor-row>td{padding:12px;background:#0a121f;border-bottom:1px solid rgba(255,255,255,.06)}
+.edit-wrap{max-width:100%}.edit-wrap input,.edit-wrap select,.edit-wrap button{padding:12px 14px;font-size:14.5px}.split{display:grid;grid-template-columns:1.2fr 1fr .9fr .8fr .6fr;gap:10px}@media(max-width:800px){.split{grid-template-columns:1fr}}.wide-table{width:100%}.wide-table input{width:100%}
+/* prevent columns overlap */
+.wide-table th,.wide-table td{word-break:break-word;overflow-wrap:anywhere;min-width:0}
+.reveal{position:relative;display:inline-block}.reveal .summary-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#0b1220;border:1px solid rgba(255,255,255,.1);color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.reveal .details{display:none;position:absolute;left:0;top:100%;margin-top:6px;background:#0b1220;border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.45);padding:10px;z-index:50;max-height:260px;overflow:auto;min-width:360px;max-width:520px}
+.reveal.open .details{display:block}td:nth-child(5),td:nth-child(6),td:nth-child(7){position:relative}td.actions{white-space:normal}td.actions .btn{width:auto;padding:7px 10px;margin:2px 2px}
+.conflict-block{border:1px solid rgba(255,77,77,.5);background:rgba(255,77,77,.08);border-radius:10px;padding:8px 10px}.conflict-lines{border-left:3px solid var(--bad);padding-left:8px;margin-top:6px}.loser{color:#ff9c9c}.conflict-title{color:#ff9c9c;font-weight:700;margin:0 0 6px}.conflict-note{color:#ffbbbb;font-size:12px}
+.sidebar .bar-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.bar-controls{display:flex;align-items:center;gap:6px}.collapse-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:#0b1220;color:var(--muted);cursor:pointer}
+.grid.collapsed .sidebar .body>*:not(.bar-head){display:none}.grid.collapsed .sidebar .body{padding:10px}.grid.collapsed .sidebar .bar-head h2{writing-mode:vertical-rl;transform:rotate(180deg);margin:0 auto;font-size:14px}
+.sidebar.totals-collapsed #totalsWrap{display:none}.sidebar .ghost-note{color:var(--muted);font-size:12px;opacity:.85}
+#weightsPanel{display:none;margin-top:10px}#weightsPanel.active{display:block}.weight-row{display:grid;grid-template-columns:1.3fr 1fr 60px;align-items:center;gap:10px;margin:6px 0}.weight-row input[type=range]{width:100%}
+.total-details{display:none;margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px}.total-card.open .total-details{display:block}.total-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);background:#0b1220;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 8px}
+
+     /* Actions */
+
+
+/* Keep headers to one line and clip if needed */
+#itemsTable th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Let actions wrap to multiple lines if needed to avoid overflow */
+#itemsTable td.actions { white-space: normal; }
+/* Ensure summary buttons don't overflow their cell */
+#itemsTable .summary-btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Prevent nested reveal panel from affecting layout width */
+#itemsTable .reveal .details { max-width: min(520px, 90vw); }
+
+
+/* Responsive column widths for auto-layout table */
+#itemsTable col.c1 { width: 54px; }                 /* On (checkbox) */
+#itemsTable col.c2 { width: 22ch; }                 /* Item (cap at ~22 chars) */
+#itemsTable col.c3 { width: 6ch; }                  /* Loc */
+#itemsTable col.c4 { width: 12ch; }                 /* Minor Art. */
+#itemsTable col.c5 { width: 6ch; }                  /* ML */
+#itemsTable col.c6 { width: auto; }                 /* Base (auto-expands) */
+#itemsTable col.c7 { width: auto; }                 /* Sockets (auto-expands) */
+#itemsTable col.c8 { width: auto; }                 /* Augments (auto-expands) */
+#itemsTable col.c9 { width: 7ch; }                  /* Lock */
+#itemsTable col.c10{ width: clamp(170px, 22vw, 280px); } /* Actions can wrap */
+
+
+/* Truncate long item names within their 22ch column */
+#itemsTable td.item-col .item-name {
+  display: inline-block;
+  max-width: 22ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+#itemsTable th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#itemsTable .summary-btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+</style></head><body>
+<div class="container">
+<h1>DDO Stat Stacking Calculator <span class="small dim">v1.5.0</span></h1>
+<div class="subtitle">Rules: <strong>highest per category</strong> + <strong>sum across categories</strong> (<b>Mythic</b> stacks). Colored sockets, Sun/Moon, named-line matching; Minor Artifact = max 1 equipped; <b>Level</b> from item or highest augment on it.</div>
+<div class="grid" id="grid">
+  <div class="card"><div class="body">
+    <h2>Add / Import Items</h2>
+    <div class="row cols-10">
+      <div><label>Item name</label><input id="name" placeholder="Ring of Insight"/></div>
+      <div><label>Location</label><select id="location"></select></div>
+      <div><label>Base Stat</label><input id="stat" list="stats" placeholder="Strength / Mythic Power / Parrying / Riposte / Luck / Potency / Resistance / Concentration / Protection from Evil"/></div>
+      <div><label>Modifier</label><select id="modifier"></select></div>
+      <div><label class="muted">Computed Category</label><input id="category" placeholder="auto → “Insightful Strength” or “Effects”"/></div>
+      <div><label>Base Value</label><input id="value" type="number" step="1" placeholder="14"/></div>
+      <div><label>Minor Artifact?</label><select id="minorArtifact"><option value="false" selected>No</option><option value="true">Yes</option></select></div>
+      <div><label>Equip?</label><select id="equipped"><option value="true" selected>Yes</option><option value="false">No</option></select></div>
+      <div><label>Item Level (ML)</label><input id="minLevel" type="number" step="1" min="0" placeholder="20"/></div>
+      <div><label>Import JSON/CSV</label><button class="btn secondary small" id="importBtn">Import…</button><input type="file" id="importFile" accept=".json,.csv" style="display:none"/></div>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button class="btn" id="addBtn">Add</button>
+      <a class="btn secondary small" id="downloadTemplate" href="#" download>CSV template</a>
+      <button class="btn secondary small" id="exportJsonBtn">Export JSON</button>
+      <button class="btn secondary small" id="exportCsvBtn">Export CSV</button>
+      <button class="btn secondary small" id="saveBtn">Save</button>
+      <button class="btn secondary small" id="loadBtn">Load</button>
+      <button class="btn secondary small" id="seedBtn">Seed demo</button>
+      <button class="btn danger small" id="clearBtn">Clear all</button>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div class="section-title"><h2>Items</h2><span class="small" id="count"></span></div>
+      <div style="overflow-x:auto;border:1px solid rgba(255,255,255,.06);border-radius:12px;">
+        <table id="itemsTable" class="wide-table" style="min-width:980px"><colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"><col class="c7"><col class="c8"><col class="c9"><col class="c10"></colgroup>
+          <thead><tr>
+            <th style="width:54px;">On</th>
+            <th>Item</th>
+            <th style="width:120px;">Loc</th>
+            <th style="width:120px;">Minor Art.</th>
+            <th style="width:80px;">ML</th>
+            <th>Base</th>
+            <th>Sockets</th>
+            <th>Augments</th>
+            <th style="width:70px;">Lock</th>
+            <th class="right" style="width:260px;">Actions</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="card sidebar" id="sidebar"><div class="body">
+    <div class="bar-head">
+      <h2>Totals</h2>
+      <div class="bar-controls">
+        <button class="collapse-btn" id="collapseTotals" title="Collapse totals" aria-expanded="true">▾</button>
+        <button class="collapse-btn" id="collapseSidebar" title="Collapse/Expand sidebar" aria-expanded="true">⮜</button>
+      </div>
+    </div>
+
+    <div class="card" id="conflictsPanel" style="margin-top:12px;background:#0b1220;"><div class="body">
+      <h2>Conflicts</h2>
+      <div id="conflicts"></div>
+      <div class="ghost-note" style="margin-top:6px;">Totals can be collapsed with the ▾ button above—conflicts remain visible.</div>
+    </div></div>
+
+    <div class="card" id="optPanel" style="margin-top:12px;background:#0b1220;"><div class="body">
+      <h2>Optimize</h2>
+      <div class="row" style="grid-template-columns:1fr 1fr;margin-bottom:8px;gap:10px;">
+        <div><label>Character Level (ML cap)</label><input id="charLevel" type="number" min="1" max="40" value="34"/></div>
+        <div style="display:flex;align-items:flex-end;"><label style="width:100%"><input type="checkbox" id="respectLevelChk" checked style="margin-right:8px;"/> Respect level (only equip ≤ Character Level)</label></div>
+      </div>
+      <div class="toolbar" style="margin-bottom:8px;">
+        <button class="btn" id="optGreedy">Greedy optimize</button>
+        <button class="btn secondary" id="optAdvanced">Advanced (try swaps)</button>
+        <button class="btn ghost" id="toggleWeights">Weights ▾</button>
+        <label class="small" style="display:inline-flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="reduceConflictsChk"/>
+          Reduce conflicts (coverage → missing weighted → conflicts)
+        </label>
+      </div>
+      <div id="weightsPanel">
+        <div class="small">Set per-stat weights (0–5). Default = 1. Higher weight = higher priority in the objective.</div>
+        <div id="weightsRows"></div>
+        <div class="toolbar" style="margin-top:6px;">
+          <button class="btn secondary small" id="weightsReset">Reset to 1</button>
+          <button class="btn secondary small" id="weightsSave">Save weights</button>
+        </div>
+      </div>
+      <p class="small" style="margin-top:8px;">Tip: Use the <b>Lock</b> column in the Items table to pin must-keep pieces before optimizing.</p>
+    </div></div>
+
+    <div id="totalsWrap">
+      <div id="missingEnhCard" class="total-card"></div>
+      <div id="effectsCard" class="total-card"></div>
+      <div id="totals" class="totals" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;background:#0b1220;"><div class="body">
+      <h2>Sockets & compatibility</h2>
+      <ul class="small" style="margin:0 0 8px 18px;line-height:1.5;">
+        <li><b>Red</b> aug → Red, Purple, Orange sockets</li>
+        <li><b>Blue</b> aug → Blue, Purple, Green sockets</li>
+        <li><b>Yellow</b> aug → Yellow, Orange, Green sockets</li>
+        <li><b>Purple</b>/<b>Orange</b>/<b>Green</b> aug → same-color only</li>
+        <li><b>Colorless aug</b> → any <em>colored</em> socket; <b>Colorless socket</b> accepts only Colorless</li>
+        <li><b>Sun</b>/<b>Moon</b> aug → Sun/Moon sockets only</li>
+        <li><b>Named lines</b> (Lamordia/IoD) → exact match of socket type</li>
+      </ul>
+      <p class="small">“Sheltering” contributes to <b>Physical Sheltering</b> (PRR) and <b>Magical Sheltering</b> (MRR) with the same modifier; each competes with other entries of that stat + modifier. <b>Mythic</b> stacks across sources.</p>
+    </div></div>
+  </div></div>
+</div>
+
+<template id="itemEditorTpl"><div class="card edit-wrap"><div class="body">
+  <h3 style="margin:0 0 8px;">Edit Item</h3>
+  <div class="split">
+    <div><label>Name</label><input data-edit="name"/></div>
+    <div><label>Location</label><select data-edit="location"></select></div>
+    <div><label>Minor Artifact?</label><select data-edit="minorArtifact"><option value="false">No</option><option value="true">Yes</option></select></div>
+    <div><label>Item Level (ML)</label><input data-edit="minLevel" type="number" min="0" step="1" placeholder="20"/></div>
+    <div><label>Equipped?</label><select data-edit="equipped"><option value="true">Yes</option><option value="false">No</option></select></div>
+    <div><label>—</label><button class="btn small" data-edit-act="save">Save</button></div>
+  </div>
+  <h4 style="margin:12px 0 6px;">Base stats</h4>
+  <div class="row" style="grid-template-columns:1fr .9fr 1fr .8fr .6fr;">
+    <div><label>Stat</label><input data-base="stat" list="stats" placeholder="Strength / Mythic Power / Parrying / Riposte / Potency / Resistance / Concentration / Protection from Evil"/></div>
+    <div><label>Modifier</label><select data-base="modifier"></select></div>
+    <div><label class="muted">Computed Category</label><input data-base="category" list="cats" placeholder="auto → “Insightful Strength” or “Effects”"/></div>
+    <div><label>Value</label><input data-base="value" type="number" step="1" placeholder="14"/></div>
+    <div style="align-self:end;"><button class="btn" data-base-act="add">Add base stat</button></div>
+  </div>
+  <div style="margin-top:10px;overflow:auto;max-height:280px;border:1px solid rgba(255,255,255,.06);border-radius:12px;">
+    <table style="width:100%" class="wide-table">
+      <thead><tr><th style="width:48px;">#</th><th>Stat</th><th>Category</th><th style="width:120px;">Value</th><th class="right" style="width:180px;">Actions</th></tr></thead>
+      <tbody data-base-list></tbody>
+    </table>
+  </div>
+</div></div></template>
+
+<template id="socketEditorTpl"><div class="card edit-wrap"><div class="body">
+  <h3 style="margin:0 0 8px;">Sockets</h3>
+  <div class="row" style="grid-template-columns:1fr .9fr .9fr .7fr;">
+    <div><label>Socket type</label><input data-sock="type" list="sockTypes" placeholder="Red / Purple / Sun / Lamordia: Melancholic (Weapon)"/></div>
+    <div><label>—</label><button class="btn" data-sock-act="add">Add socket</button></div>
+  </div>
+  <div style="margin-top:10px;">
+    <table style="width:100%" class="wide-table">
+      <thead><tr><th style="width:48px;">#</th><th>Type</th><th>Status</th><th class="right" style="width:120px;">Actions</th></tr></thead>
+      <tbody data-sock-list></tbody>
+    </table>
+  </div>
+</div></div></template>
+
+<template id="augmentEditorTpl"><div class="card edit-wrap"><div class="body">
+  <h3 style="margin:0 0 8px;">Augments</h3>
+  <div class="row" style="grid-template-columns:1fr .9fr 1.1fr 1fr .8fr 1fr .7fr .9fr;">
+    <div><label>Augment name</label><input data-aug="name" placeholder="Ruby of Deadly +10"/></div>
+    <div><label>Augment type</label><input data-aug="augType" list="augTypes" placeholder="Red / Blue / Sun / Lamordia: Melancholic (Weapon)"/></div>
+    <div><label>Place into socket</label><select data-aug="socket"></select></div>
+    <div><label>Stat</label><input data-aug="stat" list="stats" placeholder="Deadly / Potency / Mythic Power / Electric Spell Power"/></div>
+    <div><label>Modifier</label><select data-aug="modifier"></select></div>
+    <div><label class="muted">Computed Category</label><input data-aug="category" list="cats" placeholder="auto → “Insightful Deadly”"/></div>
+    <div><label>Augment Level (ML)</label><input data-aug="minLevel" type="number" step="1" min="0" placeholder="30"/></div>
+    <div><label>Value</label><input data-aug="value" type="number" step="1" placeholder="10"/></div>
+    <div><label>Active?</label><select data-aug="active"><option value="true" selected>Yes</option><option value="false">No</option></select></div>
+  </div>
+  <div style="margin-top:8px;">
+    <button class="btn" data-aug-act="add">Add augment</button>
+    <button class="btn secondary" data-aug-act="cancel" style="display:none;margin-left:6px;">Cancel</button>
+  </div>
+  <div style="margin-top:10px;overflow:auto;max-height:280px;border:1px solid rgba(255,255,255,.06);border-radius:12px;">
+    <table style="width:100%" class="wide-table">
+      <thead><tr><th style="width:48px;">On</th><th>Name</th><th>AugType</th><th>Socket</th><th>Stat</th><th>Category</th><th style="width:70px;">ML</th><th style="width:100px;">Val</th><th class="right" style="width:160px;">Actions</th></tr></thead>
+      <tbody data-aug-list></tbody>
+    </table>
+  </div>
+</div></div></template>
+
+<datalist id="stats"></datalist><datalist id="cats"></datalist><datalist id="sockTypes"></datalist><datalist id="augTypes"></datalist>
+
+<script>
+const $=s=>document.querySelector(s);
+
+// Slots (Ring capacity 2)
+const SLOT_CAPACITY={Head1:1,Head:1,Goggles:1,Necklace:1,Cloak:1,Armor:1,Bracers:1,Gloves:1,Belt:1,Boots:1,Ring:2,MainHand:1,OffHand:1,Trinket:1};
+delete SLOT_CAPACITY['Head1'];
+const SLOT_LABEL={Ring:'Ring',MainHand:'Main Hand',OffHand:'Off Hand'};
+
+// Modifiers (alphabetized on render)
+const MODIFIERS=["","Enhancement","Insightful","Quality","Exceptional","Artifact","Profane","Legendary","Sacred","Festive","Armor","Resistance","Mythic","Shield","Equipment","Luck","Deflection"];
+
+// Augment/socket types
+const COLORED=["Red","Blue","Yellow","Purple","Orange","Green"];
+const AUG_TYPES=[...COLORED,"Colorless","Sun","Moon",
+"Lamordia: Melancholic (Weapon)","Lamordia: Dolorous (Weapon)","Lamordia: Miserable (Weapon)","Lamordia: Woeful (Weapon)",
+"Lamordia: Melancholic (Accessory)","Lamordia: Dolorous (Accessory)","Lamordia: Miserable (Accessory)","Lamordia: Woeful (Accessory)",
+"Lamordia: Melancholic (Armor)","Lamordia: Dolorous (Armor)",
+"Isle of Dread: Scale (Armor)","Isle of Dread: Fang (Armor)",
+"Isle of Dread: Scale (Accessory)","Isle of Dread: Fang (Accessory)","Isle of Dread: Claw (Accessory)","Isle of Dread: Horn (Accessory)",
+"Isle of Dread: Scale (Weapon)","Isle of Dread: Fang (Weapon)","Isle of Dread: Claw (Weapon)","Isle of Dread: Horn (Weapon)"];
+const SOCKET_TYPES=[...AUG_TYPES];
+
+function normalizeStatName(s){const k=(s||"").trim().toLowerCase();const map={'str':'Strength','strength (str)':'Strength','dex':'Dexterity','dexterity (dex)':'Dexterity','con':'Constitution','constitution (con)':'Constitution','int':'Intelligence','intelligence (int)':'Intelligence','wis':'Wisdom','wisdom (wis)':'Wisdom','cha':'Charisma','charisma (cha)':'Charisma','prr':'Physical Sheltering','physical resistance rating':'Physical Sheltering','physical sheltering':'Physical Sheltering','mrr':'Magical Sheltering','magical resistance rating':'Magical Sheltering','magical sheltering':'Magical Sheltering'};return map[k]||s;}
+function n(s){return (s||'').trim().toLowerCase();}
+function isNamed(t){return /lamordia|isle of dread/i.test(t||'');}
+function isEffects(cat){return n(cat)==='effects';}
+function fixSpelling(m){return n(m)==='sheild'?'Shield':m;}
+function makeCategory(stat,modifier){stat=(stat||'').trim();modifier=fixSpelling((modifier||'').trim());if(!stat)return'';if(!modifier)return stat;return `${modifier} ${stat}`;}
+function extractModifier(category){const lc=n(category);for(const m of MODIFIERS){if(!m)continue;if(lc===n(m)||lc.startsWith(n(m)+' '))return m;}if(lc.startsWith('sheild '))return'Shield';return"";}
+function normalizeCategory(cat,stat){let c=(cat||'').trim();const sCanon=normalizeStatName(stat);const mod=extractModifier(c);const tail=c.slice(mod.length).trim();if(/^prr$/i.test(tail))c=mod?`${mod} Physical Sheltering`:'Physical Sheltering';if(/^mrr$/i.test(tail))c=mod?`${mod} Magical Sheltering`:'Magical Sheltering';if(isEffects(c))c='Effects';return c;}
+function summingCategory(category){return extractModifier(category)==='Mythic';}
+
+function canFit(augType,socketType){const a=n(augType),s=n(socketType);const colored=COLORED.map(x=>x.toLowerCase());const isColoredSocket=colored.includes(s);if(isNamed(socketType))return a===s;if(s==='sun'||s==='moon')return a===s;if(s==='colorless')return a==='colorless';if(isColoredSocket){if(a==='colorless')return true;if(a==='red')return ['red','purple','orange'].includes(s);if(a==='blue')return ['blue','purple','green'].includes(s);if(a==='yellow')return ['yellow','orange','green'].includes(s);if(a==='purple')return s==='purple';if(a==='orange')return s==='orange';if(a==='green')return s==='green';}return false;}
+
+// Populate location (alphabetized)
+(function(sel){const keys=Object.keys(SLOT_CAPACITY).sort((a,b)=>(SLOT_LABEL[a]||a).localeCompare(SLOT_LABEL[b]||b));for(const k of keys){const o=document.createElement('option');o.value=k;o.textContent=SLOT_LABEL[k]||k;sel.appendChild(o);}})($('#location'));
+
+// Alphabetized modifiers
+function modFillers(sel){sel.innerHTML='';const sorted=MODIFIERS.filter(m=>m).slice().sort((a,b)=>a.localeCompare(b));const arr=["",...sorted];arr.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m||'—';sel.appendChild(o);});}
+modFillers($('#modifier'));
+
+// Datalists
+for(const t of SOCKET_TYPES){const o=document.createElement('option');o.value=t;document.getElementById('sockTypes').appendChild(o);}
+for(const t of AUG_TYPES){const o=document.createElement('option');o.value=t;document.getElementById('augTypes').appendChild(o);}
+
+const STAT_HINTS=["Strength","Dexterity","Constitution","Intelligence","Wisdom","Charisma","Concentration","Stunning DC","Fortification","Melee Power","Ranged Power","Universal Spell Power","Mythic Power","Parrying","Riposte","Luck","Potency","Resistance","Protection from Evil","Physical Sheltering","Magical Sheltering","Sheltering","Armor Class","Saves vs Evil Monsters","Doublestrike","Doubleshot","Accuracy","Seeker","Deadly","Acid Spell Power","Cold Spell Power","Electric Spell Power","Fire Spell Power","Force Spell Power","Light Spell Power","Negative Spell Power","Positive Spell Power","Repair Spell Power","Sonic Spell Power","Acid Lore","Cold Lore","Electric Lore","Fire Lore","Force Lore","Light Lore","Negative Lore","Positive Lore","Repair Lore","Sonic Lore","Fortitude Save","Reflex Save","Will Save","Acid Resistance","Cold Resistance","Electric Resistance","Fire Resistance","Sonic Resistance","Poison Resistance","Healing Amplification","Negative Healing Amplification","Repair Amplification","Spell Focus Mastery","Evocation DC","Enchantment DC","Necromancy DC","Conjuration DC","Illusion DC","Transmutation DC","Abjuration DC","Spell Penetration","Spell Points","Cooldown Reduction","Armor-Piercing","Helplessness Damage","Sneak Attack Dice","Sneak Attack Accuracy","Sneak Attack: Attack Bonus","Sneak Attack: Damage Bonus","Dodge","Dodge Cap","Incorporeality","Concealment"];
+const CAT_HINTS=["","Enhancement","Insightful","Quality","Exceptional","Artifact","Profane","Legendary","Sacred","Festive","Armor","Resistance","Mythic","Shield","Equipment","Luck","Deflection","Effects","Deception (Proc Bonus)","Deception (Proc Bonus) Damage"];
+(function(){const sd=$('#stats');sd.innerHTML='';STAT_HINTS.forEach(s=>{const o=document.createElement('option');o.value=s;sd.appendChild(o);});const cd=$('#cats');cd.innerHTML='';CAT_HINTS.forEach(c=>{const o=document.createElement('option');o.value=c;cd.appendChild(o);});})();
+
+function wireAutoCategory(statInput,modSelect,catInput){function refresh(){const stat=normalizeStatName(statInput.value);let mod=fixSpelling(modSelect.value);if(n(stat)==='mythic power'&&(!mod||n(mod)!=='mythic'))mod='Mythic';if(n(stat)==='luck'&&(!mod||n(mod)!=='luck'))mod='Luck';const auto=isEffects(catInput.value)?'Effects':makeCategory(stat,mod);if(!catInput.value||catInput.dataset.autofilled==='true'||isEffects(catInput.value)){catInput.value=auto;catInput.dataset.autofilled='true';}}statInput.addEventListener('input',refresh);modSelect.addEventListener('change',refresh);catInput.addEventListener('input',()=>{catInput.dataset.autofilled='false';});}
+wireAutoCategory($('#stat'),$('#modifier'),$('#category'));
+
+const itemsTbody=document.querySelector('#itemsTable tbody');const totalsDiv=$('#totals');const conflictsDiv=$('#conflicts');const effectsCard=$('#effectsCard');const missingEnhCard=$('#missingEnhCard');const countEl=$('#count');let items=[];let weights=JSON.parse(localStorage.getItem('ddo_opt_weights')||'{}');
+function getCharLevel(){const el=document.getElementById('charLevel');return el?Number(el.value||34):34;}function setCharLevel(v){const el=document.getElementById('charLevel');if(el){el.value=Number(v)||34;}localStorage.setItem('ddo_char_level',String(v));}function respectLevelEnabled(){const el=document.getElementById('respectLevelChk');return !!(el&&el.checked);}
+function effectiveMinLevel(item){const base=Number(item.minLevel||0)||0;let augML=0;for(const a of (item.augments||[])){if(!a.socketId)continue;augML=Math.max(augML,Number(a.minLevel||0)||0);}return Math.max(base,augML);}
+(function(){const saved=localStorage.getItem('ddo_char_level');if(saved){const v=Number(saved)||34;const el=document.getElementById('charLevel');if(el)el.value=v;}})();
+
+function ensureSchema(it){if(!Array.isArray(it.baseStats)){it.baseStats=[];if(it.base&&it.base.stat&&it.base.category){it.baseStats.push({stat:it.base.stat,category:it.base.category,value:Number(it.base.value)||0});}delete it.base;}
+for(const bs of (it.baseStats||[])){if(/^prr$/i.test(bs.stat))bs.stat='Physical Sheltering';if(/^mrr$/i.test(bs.stat))bs.stat='Magical Sheltering';if(/^enhancement prr$/i.test(bs.category))bs.category='Enhancement Physical Sheltering';if(/^insightful prr$/i.test(bs.category))bs.category='Insightful Physical Sheltering';if(/^quality prr$/i.test(bs.category))bs.category='Quality Physical Sheltering';if(/^enhancement mrr$/i.test(bs.category))bs.category='Enhancement Magical Sheltering';if(/^insightful mrr$/i.test(bs.category))bs.category='Insightful Magical Sheltering';if(/^quality mrr$/i.test(bs.category))bs.category='Quality Magical Sheltering';}
+if(it.location==='RingA'||it.location==='RingB'){it.location='Ring';}
+it.sockets=(it.sockets||[]).map(s=>({id:s.id||crypto.randomUUID(),type:s.type,filledAugId:s.filledAugId||null}));
+it.augments=(it.augments||[]).map(a=>({...a,minLevel:Number(a.minLevel||0)||0}));
+it.minLevel=Number(it.minLevel||0)||0;
+if(typeof it.minorArtifact!=='boolean'){it.minorArtifact=!!it.minorArtifact;}if(typeof it.equipped!=='boolean'){it.equipped=!!it.equipped;}if(typeof it.locked!=='boolean'){it.locked=!!it.locked;}
+return it;}
+
+function addItem(it){it.id=crypto.randomUUID();it.sockets=it.sockets||[];it.augments=it.augments||[];const stat=normalizeStatName(it.stat);let category=normalizeCategory(it.category,it.stat);if(!isEffects(category)){category=makeCategory(stat,extractModifier(category));}let value=Number(it.value);if(isNaN(value))value=0;it.baseStats=(it.baseStats&&Array.isArray(it.baseStats))?it.baseStats:[];if(stat&&category){it.baseStats.push({stat,category,value});}delete it.stat;delete it.category;delete it.value;items.push(ensureSchema(it));render();}
+function removeItem(id){items=items.filter(i=>i.id!==id);render();}
+function toggleEquip(id){const it=items.find(i=>i.id===id);if(it){it.equipped=!it.equipped;render();}}
+function toggleLock(id){const it=items.find(i=>i.id===id);if(it){it.locked=!it.locked;render();}}
+function closeEditors(){document.querySelectorAll('.editor-row').forEach(r=>r.remove());}
+function openEditorRow(afterTr){closeEditors();const tr=document.createElement('tr');tr.className='editor-row';const td=document.createElement('td');td.colSpan=10;tr.appendChild(td);afterTr.after(tr);return td;}
+function reopenEditorByItemId(itemId,kind){const row=document.querySelector(`#itemsTable tbody tr[data-id="${itemId}"]`);if(!row)return;const tr=document.createElement('tr');tr.className='editor-row';const td=document.createElement('td');td.colSpan=10;tr.appendChild(td);row.after(tr);const item=items.find(i=>i.id===itemId);if(!item)return;if(kind==='sock')openSocketEditor(td,item);else if(kind==='aug')openAugEditor(td,item);else openItemEditor(td,item);}
+
+function render(){itemsTbody.innerHTML='';countEl.textContent=`${items.length} item${items.length!==1?'s':''}`;for(const it0 of items){const it=ensureSchema(it0);const tr=document.createElement('tr');tr.dataset.id=it.id;const effML=effectiveMinLevel(it);const over=effML>getCharLevel();const mlBadge=`<span class="badge ${over?'bad':'good'}">ML ${effML||0}</span>`;
+const baseLines=it.baseStats?.length?it.baseStats.map(bs=>`<div><span class="pill">${escape(bs.stat)}</span> <span class="pill">${escape(bs.category||'')}</span>${isEffects(bs.category)?'':' +'+(Number(bs.value)||0)}</div>`).join(''):'<span class="small">—</span>';
+const baseSummary=it.baseStats?.length?`<div class="reveal" data-kind="base"><button class="summary-btn" type="button">${it.baseStats.length} base stat${it.baseStats.length>1?'s':''} ▾</button><div class="details">${baseLines}</div></div>`:'<span class="small">—</span>';
+const socketsLines=it.sockets.length?it.sockets.map((s,idx)=>{const filled=it.augments.find(a=>a.socketId===s.id);return `<div class="small" style="margin:2px 0;">${idx+1}. <span class="pill">${escape(s.type)}</span> ${filled?`• <span class="badge good">filled</span> ${escape(filled.name||'Aug')}`:'<span class="small">• empty</span>'}</div>`;}).join(''):'<span class="small">None</span>';
+const socketsSummary=it.sockets.length?`<div class="reveal" data-kind="sock"><button class="summary-btn" type="button">${it.sockets.length} socket${it.sockets.length>1?'s':''} ▾</button><div class="details">${socketsLines}</div></div>`:'<span class="small">None</span>';
+const augLines=it.augments.length?it.augments.map(a=>{const sock=it.sockets.find(s=>s.id===a.socketId);const ok=sock&&canFit(a.augType,sock.type);return `<div class="small" style="margin:2px 0;"><span class="badge ${ok?'good':'bad'}" title="${ok?'Compatible':'Incompatible'}">${escape(a.name||'Aug')}</span> <span class="pill">${escape(a.augType||'?')}</span> → <span class="pill">${escape(sock?sock.type:'none')}</span> • <span class="pill">${escape(a.stat||'')}</span> <span class="pill">${escape(a.category||'')}</span> ML ${Number(a.minLevel)||0} +${Number(a.value)||0} ${a.active!==false?'':'(off)'}</div>`;}).join(''):'<span class="small">None</span>';
+const augSummary=it.augments.length?`<div class="reveal" data-kind="aug"><button class="summary-btn" type="button">${it.augments.length} augment${it.augments.length>1?'s':''} ▾</button><div class="details">${augLines}</div></div>`:'<span class="small">None</span>';
+tr.innerHTML=`<td><input type="checkbox" data-eq ${it.equipped?'checked':''}></td><td>${escape(it.name||'')}</td><td><span class="pill">${escape(SLOT_LABEL[it.location]||it.location||'-')}</span></td><td>${it.minorArtifact?'<span class="badge warn">Yes</span>':'<span class="small">No</span>'}</td><td>${mlBadge}</td><td>${baseSummary}</td><td>${socketsSummary}</td><td>${augSummary}</td><td><input type="checkbox" data-lock ${it.locked?'checked':''} title="Lock this item during optimization"></td><td class="right actions"><button class="btn secondary" data-act="editItem">Edit</button><button class="btn secondary" data-act="sockets">Sockets</button><button class="btn secondary" data-act="augments">Augments</button><button class="btn secondary" data-act="duplicate">Duplicate</button><button class="btn danger" data-act="delete">Delete</button></td>`;
+tr.querySelector('[data-eq]').addEventListener('change',()=>toggleEquip(it.id));tr.querySelector('[data-lock]').addEventListener('change',()=>toggleLock(it.id));
+tr.querySelector('[data-act=delete]').addEventListener('click',()=>removeItem(it.id));tr.querySelector('[data-act=duplicate]').addEventListener('click',()=>{const copy=structuredClone(it);copy.id=undefined;copy.locked=false;items.push(copy);render();});
+tr.querySelector('[data-act=sockets]').addEventListener('click',()=>{const td=openEditorRow(tr);openSocketEditor(td,it);});tr.querySelector('[data-act=augments]').addEventListener('click',()=>{const td=openEditorRow(tr);openAugEditor(td,it);});
+tr.querySelector('[data-act=editItem]').addEventListener('click',()=>{const td=openEditorRow(tr);openItemEditor(td,it);});itemsTbody.appendChild(tr);}
+const equipped=items.filter(i=>i.equipped);const {totals,withinCatConflicts,slotConflicts,minorArtConflict,minorArts,effectsMap,effectsConflicts}=computeTotalsAndConflicts(equipped);
+effectsCard.innerHTML=`<h3>Effects</h3>`+((function(){if(!Object.keys(effectsMap).length)return'<div class="small">No effects.</div>';let html='';for(const [eff,sources] of Object.entries(effectsMap)){const conflict=(sources.length>1);html+=`<div class="small" style="margin:4px 0;"><span class="badge ${conflict?'bad':'good'}">${escape(eff)}</span> <span class="muted">from</span> ${sources.map(escape).join(', ')} ${conflict?' <span class="badge bad">conflict</span>':''}</div>`;}return html;})());
+totalsDiv.innerHTML='';conflictsDiv.innerHTML='';missingEnhCard.innerHTML='';let anyTotals=false;for(const [stat,{sum,cats}] of Object.entries(totals)){anyTotals=true;const card=document.createElement('div');card.className='total-card';card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div><h3>${escape(stat)}</h3><div style="font-size:22px;font-weight:800;">${sum}</div></div><button class="total-toggle" data-toggle>Details ▾</button></div><div class="total-details">${Object.entries(cats).map(([cat,win])=>`<div class="small" style="margin:4px 0;"><span class="badge ${summingCategory(cat)?'warn':'good'}">${escape(cat)}</span> +${Number(win.value)} from <em>${escape(win.source)}</em></div>`).join('')}</div>`;totalsDiv.appendChild(card);}
+if(!anyTotals){totalsDiv.innerHTML='<div class="small">No equipped numeric stats yet.</div>';}
+const w=getWeights();const missing=[];for(const [stat,wt] of Object.entries(w)){if(Number(wt)>1){const data=totals[stat];const hasEnh=!!(data&&Object.keys(data.cats).some(cat=>extractModifier(cat)==='Enhancement'));if(!hasEnh)missing.push(stat);}}
+missingEnhCard.innerHTML=`<h3>Missing “Enhancement” (weighted)</h3>`+(missing.length?`<div class="small">These weighted stats (>1.0) have no <b>Enhancement</b> contribution in the current setup:</div><div style="margin-top:6px;">${missing.map(s=>`<span class="pill" style="margin:2px;display:inline-block;">${escape(s)}</span>`).join('')}</div>`:`<div class="small">All higher-weighted stats have Enhancement coverage. 🎉</div>`);
+let conflictsHTML='';const {slotConflictsHTML,withinCatHTML,effectsConfHTML}=buildConflictsHTML({slotConflicts,minorArtConflict,minorArts,withinCatConflicts,effectsConflicts});conflictsHTML+=slotConflictsHTML+withinCatHTML+effectsConfHTML;
+const over=[];for(const it of equipped){const ml=effectiveMinLevel(it);if(ml>getCharLevel())over.push({name:it.name||'Item',ml});}
+if(over.length){conflictsHTML+=`<div class="conflict-block" style="margin-top:10px;"><div class="conflict-title">Level conflicts</div><div class="conflict-lines">${over.map(o=>`<div class="small"><span class="badge bad">ML ${o.ml}</span> ${escape(o.name)} (over Character Level ${getCharLevel()})</div>`).join('')}</div></div>`;}
+conflictsDiv.innerHTML=conflictsHTML||'<div class="small">No conflicts 🎉</div>';
+totalsDiv.querySelectorAll('.total-card').forEach(card=>{const btn=card.querySelector('[data-toggle]');btn&&btn.addEventListener('click',()=>{card.classList.toggle('open');});});}
+
+function buildConflictsHTML({slotConflicts,minorArtConflict,minorArts,withinCatConflicts,effectsConflicts}){let slotConflictsHTML='';if(Object.keys(slotConflicts).length||minorArtConflict){slotConflictsHTML+=`<div class="conflict-block" style="margin-bottom:10px;"><div class="conflict-title">Equipment conflicts</div><div class="conflict-lines">${Object.entries(slotConflicts).map(([loc,names])=>`<div class="small"><span class="badge bad">slot</span> <b>${escape(SLOT_LABEL[loc]||loc)}</b>: ${names.map(escape).join(', ')}</div>`).join('')}${minorArtConflict?`<div class="small" style="margin-top:4px;"><span class="badge bad">minor artifact</span> <span class="conflict-note">You have ${minorArts.length} equipped; only 1 allowed.</span></div>`:''}</div></div>`;}
+let withinCatHTML='';if(withinCatConflicts.length){const grouped=groupBy(withinCatConflicts,c=>c.stat);withinCatHTML+=`<div class="conflict-block" style="margin-bottom:10px;"><div class="conflict-title">Within-category conflicts</div><div class="conflict-lines">${Object.entries(grouped).map(([stat,list])=>`<div class="small" style="margin:6px 0;"><b>${escape(stat)}</b></div>${list.map(c=>`<div class="small" style="margin:2px 0 6px 0;"><span class="badge bad">${escape(c.cat)}</span> Winner: <b>${escape(c.win.source)}</b> (+${Number(c.win.value)}) — Ignored: ${c.losers.map(l=>`<span class="loser">${escape(l.source)} (+${Number(l.value)})</span>`).join(', ')}</div>`).join('')}`).join('')}</div></div>`;}
+let effectsConfHTML='';if(effectsConflicts.length){effectsConfHTML+=`<div class="conflict-block"><div class="conflict-title">Effects conflicts</div><div class="conflict-lines">${effectsConflicts.map(({effect,sources})=>`<div class="small"><span class="badge bad">${escape(effect)}</span> from ${sources.map(escape).join(', ')}</div>`).join('')}</div></div>`;}return {slotConflictsHTML,withinCatHTML,effectsConfHTML};}
+
+function computeTotalsAndConflicts(equipped){const slotConflicts={};const bySlot=groupBy(equipped,x=>x.location||'');for(const [loc,arr] of Object.entries(bySlot)){const cap=SLOT_CAPACITY[loc]??1;if(arr.length>cap){slotConflicts[loc]=arr.map(x=>x.name||'Item');}}
+const minorArts=equipped.filter(i=>i.minorArtifact);const minorArtConflict=minorArts.length>1;const contributions=[];const effectsMap={};
+for(const it of equipped){for(const bs of (it.baseStats||[])){if(!bs.category)continue;if(isEffects(bs.category)){const key=(bs.stat||'(unnamed effect)').trim();if(!effectsMap[key])effectsMap[key]=[];effectsMap[key].push(it.name||'Item');continue;}addContribution(contributions,`${it.name} (base)`,bs.stat,bs.category,Number(bs.value)||0);}for(const a of it.augments||[]){if(a.active===false)continue;const sock=it.sockets.find(s=>s.id===a.socketId);if(!sock||!canFit(a.augType,sock.type))continue;addContribution(contributions,`${it.name} → ${a.name}`,a.stat,a.category,Number(a.value)||0);}}
+const totals={};const withinCatConflicts=[];const byStat=groupBy(contributions,x=>n(x.stat));for(const [_,arr] of Object.entries(byStat)){const statName=arr[0].stat||'(unnamed)';const byCat=groupBy(arr,x=>n(x.category));const cats={};let sum=0;for(const [__,entries] of Object.entries(byCat)){const catLabel=entries[0].category;if(summingCategory(catLabel)){const totalVal=entries.reduce((acc,e)=>acc+(Number(e.value)||0),0);sum+=totalVal;cats[catLabel]={source:`stacks (${entries.length})`,value:totalVal};}else{let win=entries[0];for(const e of entries){if(Number(e.value)>Number(win.value))win=e;}sum+=Number(win.value)||0;cats[catLabel]=win;const losers=entries.filter(x=>x!==win);if(losers.length){withinCatConflicts.push({stat:statName,cat:catLabel,win,losers});}}}totals[statName]={sum,cats};}
+const effectsConflicts=Object.entries(effectsMap).filter(([_,srcs])=>srcs.length>1).map(([effect,sources])=>({effect,sources}));
+return {totals,withinCatConflicts,slotConflicts,minorArtConflict,minorArts,effectsMap,effectsConflicts};}
+
+function addContribution(list,source,stat,category,value){const statCanon=normalizeStatName(stat);let catCanon=normalizeCategory(category,statCanon);const mod=extractModifier(catCanon);const sn=n(statCanon);
+if(sn==='sheltering'){const catPS=catCanon?catCanon.replace(/sheltering/ig,'Physical Sheltering'):makeCategory('Physical Sheltering',mod);const catMS=catCanon?catCanon.replace(/sheltering/ig,'Magical Sheltering'):makeCategory('Magical Sheltering',mod);list.push({source,stat:'Physical Sheltering',category:catPS,value});list.push({source,stat:'Magical Sheltering',category:catMS,value});return;}
+if(sn==='parrying'||sn==='riposte'){if(mod!=='Insightful')return;list.push({source,stat:'Armor Class',category:makeCategory('Armor Class',mod),value});list.push({source,stat:'Fortitude Save',category:makeCategory('Fortitude Save',mod),value});list.push({source,stat:'Reflex Save',category:makeCategory('Reflex Save',mod),value});list.push({source,stat:'Will Save',category:makeCategory('Will Save',mod),value});return;}
+if(sn==='luck'){const luckMod='Luck';list.push({source,stat:'Fortitude Save',category:makeCategory('Fortitude Save',luckMod),value});list.push({source,stat:'Reflex Save',category:makeCategory('Reflex Save',luckMod),value});list.push({source,stat:'Will Save',category:makeCategory('Will Save',luckMod),value});return;}
+if(sn==='potency'){const schools=['Acid','Cold','Electric','Fire','Force','Light','Negative','Positive','Repair','Sonic'];for(const sc of schools){list.push({source,stat:`${sc} Spell Power`,category:makeCategory(`${sc} Spell Power`,mod),value});}return;}
+if(sn==='resistance'){list.push({source,stat:'Fortitude Save',category:makeCategory('Fortitude Save',mod),value});list.push({source,stat:'Reflex Save',category:makeCategory('Reflex Save',mod),value});list.push({source,stat:'Will Save',category:makeCategory('Will Save',mod),value});return;}
+if(sn==='mythic power'){const mythicMod='Mythic';list.push({source,stat:'Melee Power',category:makeCategory('Melee Power',mythicMod),value});list.push({source,stat:'Ranged Power',category:makeCategory('Ranged Power',mythicMod),value});list.push({source,stat:'Universal Spell Power',category:makeCategory('Universal Spell Power',mythicMod),value});return;}
+if(sn==='protection from evil'){list.push({source,stat:'Armor Class',category:makeCategory('Armor Class','Deflection'),value});list.push({source,stat:'Saves vs Evil Monsters',category:makeCategory('Saves vs Evil Monsters','Resistance'),value});return;}
+list.push({source,stat:statCanon,category:catCanon,value});}
+
+function openItemEditor(container,item){container.innerHTML='';const tpl=document.getElementById('itemEditorTpl').content.cloneNode(true);container.appendChild(tpl);
+const nameI=container.querySelector('[data-edit=name]');const locI=container.querySelector('[data-edit=location]');const maI=container.querySelector('[data-edit=minorArtifact]');const mlI=container.querySelector('[data-edit=minLevel]');const eqI=container.querySelector('[data-edit=equipped]');
+(function(){locI.innerHTML='';const keys=Object.keys(SLOT_CAPACITY).sort((a,b)=>(SLOT_LABEL[a]||a).localeCompare(SLOT_LABEL[b]||b));for(const k of keys){const o=document.createElement('option');o.value=k;o.textContent=SLOT_LABEL[k]||k;locI.appendChild(o);}})();
+nameI.value=item.name||'';locI.value=item.location||Object.keys(SLOT_CAPACITY)[0];maI.value=String(!!item.minorArtifact);mlI.value=Number(item.minLevel||0)||0;eqI.value=String(!!item.equipped);
+container.querySelector('[data-edit-act=save]').addEventListener('click',()=>{item.name=nameI.value.trim();item.location=locI.value;item.minorArtifact=(maI.value==='true');item.minLevel=Number(mlI.value)||0;item.equipped=(eqI.value==='true');render();});
+const listBody=container.querySelector('[data-base-list]');const addBtn=container.querySelector('[data-base-act=add]');const get=k=>container.querySelector(`[data-base=${k}]`);const baseModSel=get('modifier');modFillers(baseModSel);
+(function(){const statI=get('stat');const catI=get('category');function refresh(){const stat=normalizeStatName(statI.value);let mod=baseModSel.value;if(n(stat)==='mythic power'&&(!mod||n(mod)!=='mythic'))mod='Mythic';if(n(stat)==='luck'&&(!mod||n(mod)!=='luck'))mod='Luck';const auto=isEffects(catI.value)?'Effects':makeCategory(stat,mod);if(!catI.value||catI.dataset.autofilled==='true'||isEffects(catI.value)){catI.value=auto;catI.dataset.autofilled='true';}}statI.addEventListener('input',refresh);baseModSel.addEventListener('change',refresh);catI.addEventListener('input',()=>{catI.dataset.autofilled='false';});})();
+function renderBaseList(){listBody.innerHTML='';(item.baseStats||[]).forEach((bs,idx)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${idx+1}</td><td><input value="${escape(bs.stat)}" data-edit-bs="stat"/></td><td><input value="${escape(bs.category)}" data-edit-bs="category"/></td><td><input type="number" ${isEffects(bs.category)?'placeholder="—"':''} value="${Number(bs.value)||0}" data-edit-bs="value"/></td><td class="right"><button class="btn secondary" data-x="apply">Apply</button> <button class="btn danger" data-x="del">Delete</button></td>`;
+tr.querySelector('[data-x=del]').addEventListener('click',()=>{item.baseStats.splice(idx,1);render();reopenEditorByItemId(item.id,'item');});
+tr.querySelector('[data-x=apply]').addEventListener('click',()=>{const si=normalizeStatName(tr.querySelector('[data-edit-bs=stat]').value.trim());const ci=normalizeCategory(tr.querySelector('[data-edit-bs=category]').value.trim(),si);let vi=Number(tr.querySelector('[data-edit-bs=value]').value);if(isEffects(ci)){if(isNaN(vi))vi=0;}if(!si||!ci||(isNaN(vi)&&!isEffects(ci))){alert('Provide Stat and Category (Value optional for Effects).');return;}item.baseStats[idx]={stat:si,category:ci,value:isNaN(vi)?0:vi};render();reopenEditorByItemId(item.id,'item');});listBody.appendChild(tr);});}
+addBtn.addEventListener('click',()=>{const stat=normalizeStatName(get('stat').value.trim());const category=normalizeCategory(get('category').value.trim(),stat);let val=Number(get('value').value);if(isNaN(val))val=0;if(!stat||!category){alert('Provide Stat and Category (Value optional for Effects).');return;}item.baseStats=item.baseStats||[];item.baseStats.push({stat,category,value:val});render();reopenEditorByItemId(item.id,'item');get('stat').value='';get('value').value='';get('category').value='';baseModSel.value='';});renderBaseList();}
+
+function openSocketEditor(container,item){container.innerHTML='';const tpl=document.getElementById('socketEditorTpl').content.cloneNode(true);container.appendChild(tpl);const listBody=container.querySelector('[data-sock-list]');const addBtn=container.querySelector('[data-sock-act=add]');const get=k=>container.querySelector(`[data-sock="${k}"]`);
+function renderList(){listBody.innerHTML='';item.sockets.forEach((s,idx)=>{const tr=document.createElement('tr');const filled=item.augments.find(a=>a.socketId===s.id);tr.innerHTML=`<td>${idx+1}</td><td><span class="pill">${escape(s.type)}</span></td><td>${filled?`<span class="badge good">filled</span> ${escape(filled.name)}`:'<span class="small">empty</span>'}</td><td class="right"><button class="btn danger" data-x="del">Remove</button></td>`;tr.querySelector('[data-x=del]').addEventListener('click',()=>{item.augments=item.augments.filter(a=>a.socketId!==s.id);item.sockets=item.sockets.filter(x=>x!==s);render();reopenEditorByItemId(item.id,'sock');});listBody.appendChild(tr);});}
+addBtn.addEventListener('click',()=>{const type=get('type').value.trim();if(!type){alert('Pick a socket type.');return;}if(!SOCKET_TYPES.some(t=>n(t)===n(type))){alert('Unknown socket type. Use suggestions.');return;}item.sockets.push({id:crypto.randomUUID(),type,filledAugId:null});render();reopenEditorByItemId(item.id,'sock');get('type').value='';});renderList();}
+
+function openAugEditor(container,item){container.innerHTML='';const tpl=document.getElementById('augmentEditorTpl').content.cloneNode(true);container.appendChild(tpl);const listBody=container.querySelector('[data-aug-list]');const addBtn=container.querySelector('[data-aug-act=add]');const cancelBtn=container.querySelector('[data-aug-act=cancel]');let editingAugId=null;
+const get=k=>container.querySelector(`[data-aug="${k}"]`);const socketSel=get('socket');const modSel=get('modifier');const statI=get('stat');const catI=get('category');
+socketSel.innerHTML='';const empties=item.sockets.filter(s=>!item.augments.some(a=>a.socketId===s.id));const filleds=item.sockets.filter(s=>item.augments.some(a=>a.socketId===s.id));for(const s of [...empties,...filleds]){const o=document.createElement('option');o.value=s.id;o.textContent=`${s.type}${empties.includes(s)?' (empty)':' (filled)'}`;socketSel.appendChild(o);}
+modFillers(modSel);
+function refreshCat(){const stat=normalizeStatName(statI.value);let mod=modSel.value;if(n(stat)==='mythic power'&&(!mod||n(mod)!=='mythic'))mod='Mythic';if(n(stat)==='luck'&&(!mod||n(mod)!=='luck'))mod='Luck';const auto=isEffects(catI.value)?'Effects':makeCategory(stat,mod);if(!catI.value||catI.dataset.autofilled==='true'||isEffects(catI.value)){catI.value=auto;catI.dataset.autofilled='true';}}
+statI.addEventListener('input',refreshCat);modSel.addEventListener('change',refreshCat);catI.addEventListener('input',()=>{catI.dataset.autofilled='false';});
+function fillFormFromAug(a){get('name').value=a.name||'';get('augType').value=a.augType||'';if(a.socketId&&Array.from(socketSel.options).some(o=>o.value===a.socketId))socketSel.value=a.socketId;const modGuess=extractModifier(a.category||'');modSel.value=modGuess||'';statI.value=a.stat||'';catI.value=a.category||'';catI.dataset.autofilled='false';get('minLevel').value=Number(a.minLevel)||0;get('value').value=Number(a.value)||0;get('active').value=(a.active!==false)?'true':'false';}
+function clearAugForm(){get('name').value='';get('augType').value='';if(socketSel.options.length)socketSel.selectedIndex=0;modSel.value='';statI.value='';catI.value='';delete catI.dataset.autofilled;get('minLevel').value='';get('value').value='';get('active').value='true';}
+function enterEdit(a){editingAugId=a.id;fillFormFromAug(a);addBtn.textContent='Save augment';cancelBtn.style.display='inline-block';}
+function exitEdit(){editingAugId=null;addBtn.textContent='Add augment';cancelBtn.style.display='none';clearAugForm();}
+cancelBtn.addEventListener('click',()=>{exitEdit();reopenEditorByItemId(item.id,'aug');});
+function renderList(){listBody.innerHTML='';for(const a of item.augments){const sock=item.sockets.find(s=>s.id===a.socketId);const ok=sock&&canFit(a.augType,sock.type);const tr=document.createElement('tr');
+tr.innerHTML=`<td><input type="checkbox" ${a.active!==false?'checked':''}></td><td>${escape(a.name||'Aug')}</td><td><span class="pill">${escape(a.augType||'')}</span></td><td>${escape(sock?sock.type:'—')}</td><td>${escape(a.stat||'')}</td><td>${escape(a.category||'')}</td><td>${Number(a.minLevel)||0}</td><td>${Number(a.value)||0}</td><td class="right"><button class="btn secondary" data-x="edit">Edit</button> <button class="btn secondary" data-x="move">Move</button> <button class="btn danger" data-x="del">Delete</button></td>`;
+tr.querySelector('input').addEventListener('change',e=>{a.active=e.target.checked;render();reopenEditorByItemId(item.id,'aug');});
+tr.querySelector('[data-x=del]').addEventListener('click',()=>{item.augments=item.augments.filter(x=>x!==a);render();reopenEditorByItemId(item.id,'aug');});
+tr.querySelector('[data-x=move]').addEventListener('click',()=>{const dst=prompt('Move to socket type (choose existing exactly):\n'+item.sockets.map(s=>s.type).join('\n'),sock?sock.type:'');const target=item.sockets.find(s=>s.type===dst);if(!target){alert('No socket with that type on this item.');return;}if(!canFit(a.augType,target.type)){alert('Augment cannot fit that socket by rule.');return;}a.socketId=target.id;render();reopenEditorByItemId(item.id,'aug');});
+tr.querySelector('[data-x=edit]').addEventListener('click',()=>{enterEdit(a);});
+if(!ok)tr.style.opacity=.8;listBody.appendChild(tr);}}
+addBtn.addEventListener('click',()=>{const name=get('name').value.trim();const augType=get('augType').value.trim();const socketId=socketSel.value;const stat=normalizeStatName(statI.value.trim());const category=normalizeCategory(catI.value.trim(),stat);const minLevel=Number(get('minLevel').value)||0;const value=Number(get('value').value);const active=get('active').value==='true';if(!socketId){alert('Pick a socket.');return;}const sock=item.sockets.find(s=>s.id===socketId);if(!sock){alert('Socket not found.');return;}if(!AUG_TYPES.some(t=>n(t)===n(augType))){alert('Unknown augment type. Use suggestions.');return;}if(!canFit(augType,sock.type)){alert('This augment type cannot go into the chosen socket by rule.');return;}if(!stat||!category||Number.isNaN(value)){alert('Provide Stat, Category, and Value.');return;}
+if(editingAugId){const a=item.augments.find(x=>x.id===editingAugId);if(!a){exitEdit();return;}if(socketId!==a.socketId){const other=item.augments.find(x=>x.socketId===socketId&&x.id!==a.id);if(other){if(!confirm('That socket is filled. Replace it?'))return;item.augments=item.augments.filter(x=>x!==other);}}
+a.name=name;a.augType=augType;a.socketId=socketId;a.stat=stat;a.category=category;a.value=value;a.active=active;a.minLevel=minLevel;}
+else{if(item.augments.some(a=>a.socketId===socketId)){if(!confirm('That socket is filled. Replace it?'))return;item.augments=item.augments.filter(a=>a.socketId!==socketId);}item.augments.push({id:crypto.randomUUID(),name,augType,socketId,stat,category,value,active,minLevel});}
+render();reopenEditorByItemId(item.id,'aug');exitEdit();});
+renderList();}
+
+document.querySelector('#itemsTable tbody').addEventListener('click',e=>{const btn=e.target.closest('.summary-btn');if(!btn)return;const wrap=btn.closest('.reveal');document.querySelectorAll('#itemsTable .reveal.open').forEach(el=>{if(el!==wrap)el.classList.remove('open');});wrap.classList.toggle('open');e.stopPropagation();});
+document.addEventListener('click',e=>{if(!e.target.closest('#itemsTable .reveal')){document.querySelectorAll('#itemsTable .reveal.open').forEach(el=>el.classList.remove('open'));}});
+
+const grid=$('#grid');const sidebar=$('#sidebar');const collapseSidebarBtn=$('#collapseSidebar');const collapseTotalsBtn=$('#collapseTotals');
+function setSidebarCollapsed(collapsed){grid.classList.toggle('collapsed',collapsed);collapseSidebarBtn.setAttribute('aria-expanded',String(!collapsed));collapseSidebarBtn.textContent=collapsed?'⮞':'⮜';localStorage.setItem('ddo_sidebar_collapsed',collapsed?'1':'0');}
+function setTotalsCollapsed(collapsed){sidebar.classList.toggle('totals-collapsed',collapsed);collapseTotalsBtn.setAttribute('aria-expanded',String(!collapsed));collapseTotalsBtn.textContent=collapsed?'▸':'▾';localStorage.setItem('ddo_totals_collapsed',collapsed?'1':'0');}
+collapseSidebarBtn.addEventListener('click',()=>setSidebarCollapsed(!grid.classList.contains('collapsed')));
+collapseTotalsBtn.addEventListener('click',()=>setTotalsCollapsed(!sidebar.classList.contains('totals-collapsed')));
+setSidebarCollapsed(localStorage.getItem('ddo_sidebar_collapsed')==='1');setTotalsCollapsed(localStorage.getItem('ddo_totals_collapsed')==='1');
+document.getElementById('charLevel')?.addEventListener('input',e=>{setCharLevel(e.target.value);render();});document.getElementById('respectLevelChk')?.addEventListener('change',()=>render());
+
+$('#importBtn').addEventListener('click',()=>$('#importFile').click());
+$('#importFile').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{if(file.name.toLowerCase().endsWith('.json')){let data=JSON.parse(reader.result);if(Array.isArray(data)){}else if(data&&Array.isArray(data.items)){data=data.items;}else throw new Error('JSON must be an array of items or {items:[...]}');if(!confirm('Append imported items to the existing list? Click OK to append, Cancel to replace.')){items=[];}for(const it of data){items.push(ensureSchema(it));}render();alert(`Imported ${data.length} item(s).`);}else if(file.name.toLowerCase().endsWith('.csv')){const rows=parseCSV(reader.result);const parsed=[];for(const r of rows){if(!r.name)continue;const it={id:crypto.randomUUID(),name:r.name,location:r.location||'Head',minorArtifact:toBool(r.minorArtifact),equipped:toBool(r.equipped),locked:toBool(r.locked),minLevel:Number(r.minLevel||0)||0,baseStats:[],sockets:[],augments:[]};if(r.baseStats){try{const arr=JSON.parse(r.baseStats);if(Array.isArray(arr))it.baseStats=arr.map(x=>({stat:normalizeStatName(x.stat),category:normalizeCategory(x.category,x.stat),value:Number(x.value)||0}));}catch{}}if(r.sockets){try{const arr=JSON.parse(r.sockets);if(Array.isArray(arr))it.sockets=arr.map(x=>({id:crypto.randomUUID(),type:x.type}));}catch{}}if(r.augments){try{const arr=JSON.parse(r.augments);if(Array.isArray(arr))it.augments=arr.map(x=>({id:crypto.randomUUID(),name:x.name,augType:x.augType,socketId:null,stat:normalizeStatName(x.stat),category:normalizeCategory(x.category,x.stat),value:Number(x.value)||0,minLevel:Number(x.minLevel||0)||0,active:x.active!==false,socketIndex:(x.socketIndex??null)}));}catch{}}for(const a of it.augments){if(a.socketIndex!=null&&it.sockets[a.socketIndex])a.socketId=it.sockets[a.socketIndex].id;delete a.socketIndex;}parsed.push(ensureSchema(it));}
+if(!confirm('Append imported items to the existing list? Click OK to append, Cancel to replace.')){items=parsed;}else{items=items.concat(parsed);}render();alert(`Imported ${parsed.length} item(s) from CSV.`);}else{alert('Unsupported file type. Please import .json or .csv');}}catch(err){console.error(err);alert('Import failed: '+err.message);}finally{e.target.value='';}};reader.readAsText(file);});
+
+function toBool(v){if(typeof v==='boolean')return v;const s=(v||'').toString().toLowerCase().trim();return s==='true'||s==='1'||s==='yes'||s==='y';}
+function parseCSV(text){const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim().length>0);if(!lines.length)return[];const headers=splitCSVLine(lines[0]);const rows=[];for(let i=1;i<lines.length;i++){const cols=splitCSVLine(lines[i]);const obj={};headers.forEach((h,idx)=>obj[h.trim()]=(cols[idx]??'').trim());rows.push(obj);}return rows;}
+function splitCSVLine(line){const out=[];let cur='';let q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(q){if(ch==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(ch==='"'){q=false;}else{cur+=ch;}}else{if(ch===','){out.push(cur);cur='';}else if(ch==='"'){q=true;}else{cur+=ch;}}}out.push(cur);return out;}
+
+function allStatsInItems(){const set=new Set();for(const it of items){for(const bs of (it.baseStats||[])){if(!isEffects(bs.category)&&bs.stat)set.add(bs.stat);}for(const a of (it.augments||[])){if(a.stat)set.add(a.stat);}}return Array.from(set).sort();}
+function getWeights(){const w={...weights};for(const s of allStatsInItems()){if(!(s in w))w[s]=1;}return w;}
+function reduceConflictsEnabled(){return document.getElementById('reduceConflictsChk')?.checked;}
+function checkLockedFeasible(lockedEquipped){const bySlot=groupBy(lockedEquipped,it=>it.location);for(const [loc,arr] of Object.entries(bySlot)){const cap=SLOT_CAPACITY[loc]??1;if(arr.length>cap){alert(`Locked items exceed capacity for slot "${SLOT_LABEL[loc]||loc}" (${arr.length}/${cap}). Unlock one to optimize.`);return false;}}const minorCount=lockedEquipped.filter(i=>i.minorArtifact).length;if(minorCount>1){alert(`Locked Minor Artifacts exceed the 1 allowed (${minorCount}). Unlock some to optimize.`);return false;}if(respectLevelEnabled()){const over=lockedEquipped.filter(i=>effectiveMinLevel(i)>getCharLevel());if(over.length){alert('Locked items exceed Character Level: '+over.map(o=>`${o.name} (ML ${effectiveMinLevel(o)})`).join(', '));return false;}}return true;}
+const PENALTY_COVERAGE=1e9,PENALTY_MISSING_ENH=1e7,PENALTY_CONFLICTS=1e6;
+function countMissingEnhancement(totals,weightsMap){let missing=0;for(const [stat,wt] of Object.entries(weightsMap)){if(Number(wt)>1){const data=totals[stat];const hasEnh=!!(data&&Object.keys(data.cats).some(cat=>extractModifier(cat)==='Enhancement'));if(!hasEnh)missing++;}}return missing;}
+function eligibleItemsForSlot(slot){return items.filter(i=>i.location===slot&&(!respectLevelEnabled()||effectiveMinLevel(i)<=getCharLevel()));}
+function coveragePenaltyFor(selectionItems){let miss=0;for(const [slot,cap] of Object.entries(SLOT_CAPACITY)){const avail=eligibleItemsForSlot(slot).length;if(avail<=0)continue;const required=Math.min(cap,avail);const have=selectionItems.filter(i=>i.location===slot).length;const lacking=Math.max(0,required-have);miss+=lacking;}return miss*PENALTY_COVERAGE;}
+function scoreSelection(selectionItems,weightsMap,reduceConflicts){const {totals,withinCatConflicts,effectsConflicts}=computeTotalsAndConflicts(selectionItems);let score=0;for(const [stat,data] of Object.entries(totals)){const w=Number(weightsMap[stat]??1);score+=w*Number(data.sum||0);}if(reduceConflicts){score-=coveragePenaltyFor(selectionItems);const missingEnh=countMissingEnhancement(totals,weightsMap);score-=missingEnh*PENALTY_MISSING_ENH;const withinLosses=withinCatConflicts.reduce((acc,c)=>acc+c.losers.length,0);const effectClashes=effectsConflicts.length;score-=(withinLosses+effectClashes)*PENALTY_CONFLICTS;}return score;}
+function greedyOptimize(weightsMap,reduceConflicts){const lockedEquipped=items.filter(i=>i.locked&&i.equipped);if(!checkLockedFeasible(lockedEquipped))return lockedEquipped;const remaining=items.filter(i=>!respectLevelEnabled()||effectiveMinLevel(i)<=getCharLevel()).slice();let selected=lockedEquipped.slice();let improved=true;while(improved){improved=false;let bestDelta=0,bestCand=null,bestRemoveA=null,bestRemoveB=null;const currentScore=scoreSelection(selected,weightsMap,reduceConflicts);for(const cand of remaining){if(selected.includes(cand))continue;const slot=cand.location;const slotItems=selected.filter(i=>i.location===slot&&!i.locked);const cap=SLOT_CAPACITY[slot]??1;const slotOptions=(selected.filter(i=>i.location===slot).length<cap)?[null]:slotItems;const minorItems=selected.filter(i=>i.minorArtifact&&!i.locked);const needMinorRemoval=cand.minorArtifact&&selected.filter(i=>i.minorArtifact).length>=1;const minorOptions=needMinorRemoval?minorItems:[null];for(const remSlot of slotOptions){for(const remMinor of minorOptions){const newSel=selected.filter(x=>x!==remSlot&&x!==remMinor);newSel.push(cand);const slotCount=groupBy(newSel,x=>x.location);let ok=true;for(const [loc,arr] of Object.entries(slotCount)){const c=SLOT_CAPACITY[loc]??1;if(arr.length>c){ok=false;break;}}const minorCount=newSel.filter(i=>i.minorArtifact).length;if(minorCount>1)ok=false;if(!ok)continue;const newScore=scoreSelection(newSel,weightsMap,reduceConflicts);const delta=newScore-currentScore;if(delta>bestDelta+1e-9){bestDelta=delta;bestCand=cand;bestRemoveA=remSlot;bestRemoveB=remMinor;}}}}if(bestDelta>0&&bestCand){selected=selected.filter(x=>x!==bestRemoveA&&x!==bestRemoveB);selected.push(bestCand);improved=true;}}return selected;}
+function advancedImprove(selected,weightsMap,reduceConflicts){let improved=true;while(improved){improved=false;let baseScore=scoreSelection(selected,weightsMap,reduceConflicts);for(const out of selected.slice()){if(out.locked)continue;for(const inp of items){if(selected.includes(inp))continue;if(respectLevelEnabled()&&effectiveMinLevel(inp)>getCharLevel())continue;let newSel=selected.filter(x=>x!==out);const slot=inp.location;const cap=SLOT_CAPACITY[slot]??1;const slotCount=newSel.filter(i=>i.location===slot).length;if(slotCount>=cap){let bestVictim=null,bestDrop=Infinity;for(const victim of newSel.filter(i=>i.location===slot&&!i.locked)){const sc=scoreSelection(newSel,weightsMap,reduceConflicts);const sc2=scoreSelection(newSel.filter(x=>x!==victim),weightsMap,reduceConflicts);const drop=sc-sc2;if(drop<bestDrop){bestDrop=drop;bestVictim=victim;}}if(bestVictim)newSel=newSel.filter(x=>x!==bestVictim);else continue;}if(inp.minorArtifact&&newSel.filter(i=>i.minorArtifact).length>=1){let bestVictim=null,bestDrop=Infinity;for(const victim of newSel.filter(i=>i.minorArtifact&&!i.locked)){const sc=scoreSelection(newSel,weightsMap,reduceConflicts);const sc2=scoreSelection(newSel.filter(x=>x!==victim),weightsMap,reduceConflicts);const drop=sc-sc2;if(drop<bestDrop){bestDrop=drop;bestVictim=victim;}}if(bestVictim)newSel=newSel.filter(x=>x!==bestVictim);else continue;}newSel.push(inp);const slotCount2=groupBy(newSel,x=>x.location);let ok=true;for(const [loc,arr] of Object.entries(slotCount2)){const c=SLOT_CAPACITY[loc]??1;if(arr.length>c){ok=false;break;}}if(newSel.filter(i=>i.minorArtifact).length>1)ok=false;if(!ok)continue;const scNew=scoreSelection(newSel,weightsMap,reduceConflicts);if(scNew>baseScore+1e-9){selected=newSel;baseScore=scNew;improved=true;}}}}return selected;}
+
+function buildWeightsUI(){const panel=$('#weightsPanel');const rowsDiv=$('#weightsRows');rowsDiv.innerHTML='';const all=allStatsInItems();const w=getWeights();for(const stat of all){const row=document.createElement('div');row.className='weight-row';row.innerHTML=`<div>${escape(stat)}</div><input type="range" min="0" max="5" step="0.1" value="${Number(w[stat]??1)}"/><input type="number" min="0" max="5" step="0.1" value="${Number(w[stat]??1)}" style="width:60px;"/>`;const range=row.querySelector('input[type=range]');const num=row.querySelector('input[type=number]');range.addEventListener('input',()=>{num.value=range.value;});num.addEventListener('input',()=>{range.value=num.value;});rowsDiv.appendChild(row);}}
+$('#toggleWeights').addEventListener('click',()=>{const p=$('#weightsPanel');p.classList.toggle('active');if(p.classList.contains('active'))buildWeightsUI();});
+$('#weightsReset').addEventListener('click',()=>{const p=$('#weightsPanel');if(!p.classList.contains('active'))return;p.querySelectorAll('input[type=range],input[type=number]').forEach(inp=>{inp.value=1;});});
+$('#weightsSave').addEventListener('click',()=>{const p=$('#weightsPanel');if(!p.classList.contains('active'))return;const all=allStatsInItems();const w={};const rows=Array.from($('#weightsRows').children);rows.forEach((row,idx)=>{const stat=all[idx];const val=Number(row.querySelector('input[type=number]').value);w[stat]=isFinite(val)?val:1;});weights=w;localStorage.setItem('ddo_opt_weights',JSON.stringify(weights));alert('Weights saved.');});
+
+$('#optGreedy').addEventListener('click',()=>{const w=getWeights();const reduce=reduceConflictsEnabled();const sel=greedyOptimize(w,reduce);for(const it of items){const lockedKeep=it.locked&&it.equipped;it.equipped=lockedKeep||sel.includes(it);}render();alert('Greedy selection applied.'+(reduce?' (coverage → missing weighted → conflicts priority)':''));});
+$('#optAdvanced').addEventListener('click',()=>{const w=getWeights();const reduce=reduceConflictsEnabled();let sel=greedyOptimize(w,reduce);sel=advancedImprove(sel,w,reduce);for(const it of items){const lockedKeep=it.locked&&it.equipped;it.equipped=lockedKeep||sel.includes(it);}render();alert('Advanced selection applied.'+(reduce?' (coverage → missing weighted → conflicts priority)':''));});
+
+function groupBy(arr,key){const m={};for(const x of arr){const k=key(x)||'';(m[k]||(m[k]=[])).push(x);}return m;}
+function escape(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+$('#addBtn').addEventListener('click',()=>{const name=$('#name').value.trim();const location=$('#location').value;const stat=$('#stat').value.trim();const category=$('#category').value.trim();const value=Number($('#value').value);const minorArtifact=$('#minorArtifact').value==='true';const equipped=$('#equipped').value==='true';const minLevel=Number($('#minLevel').value)||0;if(!location){alert('Choose a location.');return;}addItem({name,location,stat,category,value,minorArtifact,equipped,locked:false,minLevel});$('#name').value='';$('#value').value='';$('#category').value='';$('#modifier').value='';$('#minLevel').value='';});
+
+(function(){const a=document.getElementById('downloadTemplate');if(!a)return;a.addEventListener('click',function(e){e.preventDefault();const csv=['name,location,minorArtifact,equipped,locked,minLevel,baseStats,sockets,augments','"Example Ring",Ring,false,true,false,20,"[{""stat"":""Wisdom"",""category"":""Enhancement Wisdom"",""value"":14}]","[{""type"":""Purple""}]","[]"'].join('\n');const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);a.href=url;a.download='ddo-items-template.csv';setTimeout(()=>URL.revokeObjectURL(url),10000);});})();
+
+document.getElementById('saveBtn').addEventListener('click',()=>{localStorage.setItem('ddo_calc_v1_5',JSON.stringify(items));alert('Saved.');});
+document.getElementById('loadBtn').addEventListener('click',(ev)=>{if(!confirm('Load saved items from this browser? This will replace the current in-memory list. Proceed?'))return;const raw=localStorage.getItem('ddo_calc_v1_5')||localStorage.getItem('ddo_calc_v1_4')||localStorage.getItem('ddo_calc_v1_3')||localStorage.getItem('ddo_calc_v1_2')||localStorage.getItem('ddo_calc_v1_1')||localStorage.getItem('ddo_calc_v1');if(!raw)return alert('No save.');try{items=(JSON.parse(raw)||[]).map(ensureSchema);render();}catch{alert('Failed to load.');}});
+document.getElementById('clearBtn').addEventListener('click',()=>{if(!confirm('Are you sure you want to clear ALL items?'))return;items=[];render();});
+document.getElementById('seedBtn').addEventListener('click',()=>{if(!confirm('Replace current items with a demo seed?'))return;items=[];addItem({name:'Circlet of Clarity',location:'Head',stat:'Wisdom',category:'Enhancement Wisdom',value:14,minorArtifact:false,minLevel:20,equipped:true,sockets:[{id:crypto.randomUUID(),type:'Green'}]});items[0].baseStats.push({stat:'Sheltering',category:'Insightful Sheltering',value:24});items[0].baseStats.push({stat:'Physical Sheltering',category:'Enhancement Physical Sheltering',value:34});items[0].baseStats.push({stat:'Evasion',category:'Effects'});
+const ring1={name:'Old Sage Ring',location:'Ring',minorArtifact:false,minLevel:21,equipped:true,sockets:[{id:crypto.randomUUID(),type:'Purple'}],augments:[],baseStats:[{stat:'Strength',category:'Quality Strength',value:6},{stat:'Luck',category:'Luck Luck',value:2}]};ring1.augments.push({id:crypto.randomUUID(),name:'Ruby of Deadly +10',augType:'Red',socketId:ring1.sockets[0].id,stat:'Deadly',category:'Insightful Deadly',value:10,minLevel:24,active:true});items.push(ensureSchema(ring1));
+const ring2={name:'Ring of the Tide',location:'Ring',minorArtifact:true,minLevel:21,equipped:true,sockets:[{id:crypto.randomUUID(),type:'Yellow'}],augments:[],baseStats:[{stat:'Wisdom',category:'Enhancement Wisdom',value:16}]};ring2.augments.push({id:crypto.randomUUID(),name:'Topaz of Potency +20',augType:'Yellow',socketId:ring2.sockets[0].id,stat:'Potency',category:'Enhancement Potency',value:20,minLevel:23,active:true});items.push(ensureSchema(ring2));
+const cloak={name:'Aegis of Faith',location:'Cloak',minorArtifact:false,minLevel:20,equipped:true,sockets:[],augments:[],baseStats:[{stat:'Protection from Evil',category:'Effects',value:4}]};items.push(ensureSchema(cloak));
+const trink={name:'Solar Focus',location:'Trinket',minorArtifact:false,minLevel:29,equipped:true,sockets:[{id:crypto.randomUUID(),type:'Sun'}],augments:[],baseStats:[{stat:'Mythic Power',category:'Mythic Mythic Power',value:2}]};trink.augments.push({id:crypto.randomUUID(),name:'Solar Potency +25',augType:'Sun',socketId:trink.sockets[0].id,stat:'Universal Spell Power',category:'Artifact Universal Spell Power',value:25,minLevel:30,active:true});items.push(ensureSchema(trink));render();});
+
+render();
+
+(function autoLoadSaved(){
+  try{
+    if (!Array.isArray(items) || items.length) return;
+    const raw = localStorage.getItem('ddo_items_v2') || localStorage.getItem('ddo_items') || localStorage.getItem('ddo_items_backup');
+    if (!raw) return;
+    let data = null;
+    try { data = JSON.parse(raw); } catch(e){ return; }
+    if (Array.isArray(data)) {
+      items = data.map(ensureSchema);
+    } else if (data && Array.isArray(data.items)) {
+      items = data.items.map(ensureSchema);
+    } else {
+      return;
+    }
+    render();
+    console.log('[DDO] Auto-loaded saved items.');
+  } catch(err){ console.warn('[DDO] AutoLoad failed', err); }
+})();
+
+
+(function initAutoLoadToggle(){
+  try{
+    const chk = document.getElementById('autoloadChk');
+    const enabled = (localStorage.getItem('ddo_autoload') ?? '1') !== '0';
+    if (chk) { chk.checked = enabled; chk.addEventListener('change', () => {
+      localStorage.setItem('ddo_autoload', chk.checked ? '1' : '0');
+    }); }
+    if (!enabled) return;
+
+    if (!Array.isArray(items) || items.length) return;
+
+    const keys = [
+      'ddo_calc_v1_5','ddo_calc_v1_4','ddo_calc_v1_3','ddo_calc_v1_2','ddo_calc_v1_1','ddo_calc_v1',
+      'ddo_items_v2','ddo_items','ddo_items_backup'
+    ];
+    let raw = null;
+    for (const k of keys){ raw = localStorage.getItem(k); if (raw) break; }
+    if (!raw) return;
+
+    let data = null;
+    try { data = JSON.parse(raw); } catch { return; }
+    if (Array.isArray(data)) {
+      items = data.map(ensureSchema);
+    } else if (data && Array.isArray(data.items)) {
+      items = data.items.map(ensureSchema);
+    } else {
+      return;
+    }
+    render();
+    console.log('[DDO] Auto-loaded', items.length, 'items from storage.');
+  } catch (err) {
+    console.warn('[DDO] Auto-load failed:', err);
+  }
+})();
+
+</script>
+</body></html>
