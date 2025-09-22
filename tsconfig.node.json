@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
+  "module": "Node16",
     "lib": ["ES2022"],
     "rootDir": "./",
     "outDir": "dist",
-    "moduleResolution": "NodeNext",
+  "moduleResolution": "Node16",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
